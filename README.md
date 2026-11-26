@@ -4,7 +4,7 @@ Notes and artifacts from conversations with Antigravity
 ## Notes
 
 - [`notes/writership.md`](notes/writership.md) — Architecture, evaluation, and industry parallels for [`phucvin/Writership`](https://github.com/phucvin/Writership).
-- [`notes/old-original-repos.md`](notes/old-original-repos.md) — Summaries, evaluations, industry parallels, and continuation challenges for 14 original `phucvin` repositories.
+- [`notes/old-original-repos.md`](notes/old-original-repos.md) — Summaries, evaluations, industry parallels, and continuation challenges for 15 original `phucvin` repositories (linking to `Writership`).
 
 ## Skills
 

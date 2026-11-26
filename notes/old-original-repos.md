@@ -1,6 +1,6 @@
 # Old Original Repos — Summary & Evaluation
 
-Audit of 14 original repositories under [`phucvin`](https://github.com/phucvin), covering what each project actually implements, the problems it targets, a candid assessment of the idea, industry equivalents across languages/platforms, and concrete challenges if continued.
+Audit of 15 original repositories under [`phucvin`](https://github.com/phucvin) (14 detailed below, plus [`Writership`](writership.md) in its own dedicated note), covering what each project actually implements, the problems it targets, a candid assessment of the idea, industry equivalents across languages/platforms, and concrete challenges if continued.
 
 ---
 
@@ -13,6 +13,7 @@ Audit of 14 original repositories under [`phucvin`](https://github.com/phucvin),
 | 3 | [`project-teneng`](#3-project-teneng) | Oct 2022 | Go | Early PoC, crowded space | 2.5-hour Go + gRPC skeleton for a centralized `ServiceRouter` deployed on Fly.io's private network. |
 | 4 | [`Okeva`](#4-okeva) | Jan 2019 | C# | Clever prototype, crowded space | Three-layer C# embedded KV & hierarchical object storage engine with in-memory Trie/TST key indexes, append-only values, LRU views, and reactive secondary indexes. |
 | 5 | [`hkv`](#5-hkv) | Jan 2019 | C++ | Neat concept, rough prototype | Minimalist C++ embedded append-only KV store with built-in per-key version history (`past_int`) and a prototype hierarchical C++ object-mapping layer. |
+| ↗ | [`Writership`](writership.md) | Sep 2018 | C# (Unity) | Strong concept, rough prototype | Experimental single-writer, double/triple-buffered reactive state-management library for race-free parallel UI/game state (**[full notes →](writership.md)**). |
 | 6 | [`tl_sync`](#6-tl_sync) | Aug 2018 | Rust | Clever concept, unsound execution | Experimental 2018 nightly Rust crate implementing a triple-buffered, thread-local reactive state tree for lock-free UI/compute thread sync. |
 | 7 | [`Memory-Chaos`](#7-memory-chaos) | Sep 2017 | C# (Unity) | Good learning exercise | Unity 5.3 mobile sequential tile-tapping ("1 to 50" / Schulte-table) prototype with AssetBundle image packs and deterministic event-log replays. |
 | 8 | [`unidirectional-data-flow`](#8-unidirectional-data-flow) | Sep 2017 | C# | Good learning exercise | Single-file C# console prototype contrasting event-based and callback-based async service wiring with a Passive View / reactive presenter pattern. |
@@ -27,9 +28,9 @@ Audit of 14 original repositories under [`phucvin`](https://github.com/phucvin),
 
 ## Cross-Cutting Themes
 
-Looking across all 14 repos (alongside [`Writership`](writership.md)), five clear technical arcs stand out:
+Looking across all 15 repos, five clear technical arcs stand out:
 
-1. **Reactive State & Deterministic Simulation (2016–2018):** `edi` → `q2c` → `test-mvrvm` → `unidirectional-data-flow` → `tl_sync` (and `Writership`). A sustained progression from deferred-queue/version-stamped C# prototypes to triple-buffered lock-free Rust state trees—repeatedly anticipating modern signals, ECS change filters, and pipelined UI/compute sync.
+1. **Reactive State & Deterministic Simulation (2016–2018):** `edi` → `q2c` → `test-mvrvm` → `unidirectional-data-flow` → `tl_sync` → [`Writership`](writership.md). A sustained progression from deferred-queue/version-stamped C# prototypes to triple-buffered lock-free Rust state trees and single-writer buffered cells in Unity—repeatedly anticipating modern signals, ECS change filters, and pipelined UI/compute sync.
 2. **Embedded Storage Internals (Jan 2019):** `hkv` (C++) → `Okeva` (C#). Back-to-back explorations of Bitcask/WiscKey-style key-value separation (ordered in-memory key index + append-only value log) layered with hierarchical `0xFF`-delimited object paths.
 3. **Distributed Systems & Wasm Compute (2017–2022):** `try-microservices-locally` → `project-teneng` → `waas`. Moving from in-process event-sourced microservice simulation to Fly.io gRPC routing and polyglot WebAssembly-as-a-Service.
 4. **Full-Stack Reactive Web (2025):** `solv-03` brings the fine-grained reactive signal obsession to the web, threading a clever needle between Phoenix LiveView, Qwik resumability, and Datastar.
@@ -503,3 +504,13 @@ The core gameplay twist is genuinely clever: letting the player spend a 3-swap b
 - **Engine and state-management fragility:** `flatmoon.director` globally monkey-patches `Thing.new` and `listener.add` (with an acknowledged scene-transition race comment), `Gem:draw` allocates a new `Quad` every frame per unselected gem, `Board:moveOut` has a typo (`if aftern then after() end`), and `Saved.lua` uses unescaped Lua table serialization loaded via `love.filesystem.load` (a quote in `playerName` breaks saves).
 - **Hardcoded desktop layout vs. mobile/web expectations:** All UI coordinates, board sizing (960×640), and the hover-based swap-counter cursor assume desktop mouse input; adapting to modern mobile/web requires responsive scaling, touch-drag affordances, and deeper progression/mechanics (obstacles, power-ups, daily puzzles).
 - **Asset provenance and licensing:** Bundled assets include Windows Consolas fonts (`consola*.ttf`) and Bejeweled-style announcer voice clips that would need properly licensed or original replacements before any public/commercial distribution.
+
+---
+
+## Related: `Writership`
+
+- **Repo:** <https://github.com/phucvin/Writership>
+- **Dedicated Notes:** [`notes/writership.md`](writership.md)
+- **Activity:** Sep 2018 · **Stack:** C# (Unity) · **Verdict:** **Strong concept, rough prototype**
+
+**Summary:** An experimental reactive state-management library for Unity/C# inspired by Rust, Redux, and SatchelJS—and the direct C# successor to [`tl_sync`](#6-tl_sync) and [`edi`](#12-edi). It combines **single-writer ownership** (each state field has one authoritative writer, guarded in `DEBUG` via `StackTrace`), **double/triple-buffered read/write cells** (`El<T>`, `Li<T>`, `Ar<T>`, `Op<T>`, `MultiOp<T>`, `Wa`) for lock-free parallel worker execution without full-tree immutability, and **wave-based unidirectional propagation**. For the full architecture breakdown, evaluation, industry parallels (Bevy ECS, Unity DOTS, Signals, LMAX Disruptor, synchronous dataflow), and design challenges (many-to-one fan-in, dynamic UI trees, diamond glitches, compile-time capability handles), see **[`notes/writership.md`](writership.md)**.
