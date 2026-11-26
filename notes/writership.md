@@ -84,3 +84,33 @@ Two engine implementations exist:
   - **Actor Model** (**Erlang/OTP**, **Akka**, **Orleans**, **Swift Actors**) — single-writer encapsulated state communicating via messages.
 - **Synchronous Dataflow & Hardware Design:**
   - **Lustre**, **Esterel**, **Verilog / VHDL** — discrete clock ticks reading current registers, writing next-cycle registers, and flipping on the clock edge (very close to Writership's read/write cell loop).
+
+---
+
+## 6. Problems Solved by the Writership Model
+
+- **"Who mutated this?" (Action-at-a-distance):** Enforces a single authoritative owner per state field; other systems express intent via `Op` / `MultiOp` instead of mutating state directly.
+- **Lock-free parallel computation without full immutability:** Single-writer eliminates write–write races, while double-buffered read/write cells eliminate read–write races within a wave—allowing imperative in-place buffer mutation (`AsWrite()`) with lower GC pressure than pure immutable trees.
+- **Order-dependent bugs & re-entrancy:** Wave-based `Read → Write → Copy` gives every listener in wave *N* the same committed snapshot, avoiding synchronous cascading re-entrancy and subscription-order sensitivity.
+- **Decoupling UI from domain logic:** Separating `Op` (intent) → `Worker/Computer` (state transitions) → `Main/Reader` (UI/side effects) keeps heavy computation off the main thread.
+
+---
+
+## 7. Design Challenges (Multiple Children, Dynamic UI, & Scale)
+
+### Multiple Children ("Many-to-One" Fan-In)
+- Children cannot write directly to a shared parent `El<T>` (e.g., many enemies damaging one player, multiple child items updating `selectedId` or `errors`); they must fire into a shared `MultiOp<T>` folded by the parent's single writer.
+- **Non-deterministic ordering:** Non-commutative ops fired in the same wave (especially from parallel workers) need explicit priorities, tie-breakers, or commutative/CRDT-like reducers.
+- **Boilerplate:** Every cross-cutting interaction requires defining an `Op` type and wiring it into the owner.
+
+### Dynamic UI & Component Trees
+- **Parent vs. child ownership ("Check All" problem):** If each child row owns `item.isChecked`, a parent "Check All" action cannot write it directly (must broadcast an `Op`). If the parent owns the whole `Li<Item>`, children lose encapsulation and single-item edits trigger list-level writes/diffs.
+- **Dynamic lifecycles & mid-wave creation:** Dynamically mounting/unmounting UI nodes requires careful `CompositeDisposable` teardown to avoid zombie listeners. Spawning a child in wave 1 raises timing issues: deferring its first render to next frame causes a 1-frame uninitialized flash, while running mid-wave mutates the dependency graph during worker execution.
+- **Nested dynamic dependencies:** Watching fields across nested collections (`List<Category>` → `List<Item>` → `El<Price>`) makes manual `Wa` wiring brittle, and keyed reconciliation is needed to avoid recreating child widgets on list updates.
+- **Two-way UI bindings:** Native widgets (text inputs, sliders, drag gestures) hold mutable state; routing every keystroke through `Widget → Op → Wave → El → Widget` risks feedback loops, 1-frame input lag, or cursor jumps unless ephemeral local UI state is separated from committed state.
+
+### Broader Architectural Challenges
+- **Glitches (diamond dependencies):** Without topological sorting, wave-based propagation can evaluate downstream nodes twice with inconsistent intermediate values—causing wasted UI work or duplicate side effects.
+- **Atomic multi-field / cross-entity transactions:** Operations spanning two writers (e.g., moving an item from `Inventory` to `Equipment`) require cross-wave coordination and rollback logic; merging them under one writer drifts back toward a monolithic store.
+- **Granularity vs. overhead:** Coarse cells cause full-buffer copies and over-notification; overly fine cells create thousands of tiny jobs where synchronization overhead outweighs the work.
+- **Enforcement mechanism:** Runtime `StackTrace` checks are debug-only and brittle around shared helpers. Splitting each cell into capability handles—a private `Writer<T>` for the owner and a shareable `Reader<T>` for everyone else—enforces single-writer at compile time with zero runtime cost.
