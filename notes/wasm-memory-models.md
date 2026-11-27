@@ -85,7 +85,25 @@ CHERI shows up in **two distinct ways**:
    * Rather than changing the Wasm ISA, they use hardware 128-bit tagged capabilities to bound linear memories, seal allocators, enforce capability-restricted WASI (`cWASI`), and isolate Wasm compartments in hardware.
 
 #### Status in the Official W3C Wasm CG
-CHERI-style capability memory is **not currently on the official W3C standardization track**. The CG has focused on **Linear Memory** (+ Multi-Memory / Memory64 / Memory Control) and **WasmGC** (+ Shared-Everything Threads), mainly because CHERI hardware is not yet mainstream and software-emulated per-word capability tags / fat pointers carry higher overhead on x86/ARM than MMU guard pages or statically typed GC objects.
+CHERI-style capability memory is **not currently on the official W3C standardization track**. The CG has focused on **Linear Memory** (+ Multi-Memory / Memory64 / Memory Control) and **WasmGC** (+ Shared-Everything Threads), mainly because CHERI hardware is not yet mainstream and software-emulated per-word capability tags / fat pointers carry higher overhead on x86/ARM than MMU guard pages or statically typed GC objects. (For a deeper dive on MS-Wasm's threat model and status, see [`notes/ms-wasm.md`](ms-wasm.md).)
+
+### Adjacent Native Approach: Fil-C (Software Capabilities + GC)
+**Fil-C** (by Filip Pizlo) is a native memory-safe C/C++ implementation (Clang/LLVM fork) that brings CHERI/MS-Wasm-level safety to **unmodified legacy C/C++ on stock x86-64/ARM64 CPUs**, without using WebAssembly.
+
+* **InvisiCaps (Invisible Capabilities):** Keeps `sizeof(T*) == 8` (avoiding CHERI's 128-bit fat-pointer ABI breakage) by tracking capability metadata out-of-band in the runtime/ABI. Checks every access against bounds, read-only permissions, and pointer/function-pointer validity.
+* **FUGC (Concurrent, Accurate, Non-Moving GC):** Backs `malloc`/`free` with a concurrent GC; calling `free()` zeroes the object's capability bounds so use-after-free deterministically traps, while FUGC safely reclaims memory once no pointers remain.
+* **Compatibility & Performance:** Compiles large legacy C/C++ projects (CPython, OpenSSH, SQLite, Emacs, full Linux userland) with ~1×–4× overhead (negligible on I/O-bound workloads, ~2×–3× on pointer-dense CPU loops), though everything must be recompiled into Fil-C's custom ABI.
+* **Key difference for runtime composition:** Fil-C enforces safety via a **trusted native compiler**, not a verifiable bytecode/VM boundary—so it cannot safely load and compose unverified third-party binaries at runtime the way WasmGC, MS-Wasm, or `optrich-vm-02` can. However, it validates the same **"software capabilities + GC on stock CPUs"** thesis that `optrich-vm-02` uses.
+
+### Landscape Comparison
+
+| System | Layer / Trust Boundary | Memory & Capability Mechanism | Temporal Safety | Legacy C/C++ Compat | Typical Overhead (Stock CPU) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **CHERI / Morello** | Hardware ISA | 128-bit hardware-tagged capabilities | Hardware / revocation (Cornucopia) | High (needs purecap porting) | Very low (requires CHERI silicon) |
+| **MS-Wasm** | Verifiable Wasm bytecode | Segments + unforgeable handles + per-word tags | Software checks or CHERI | High (via LLVM fork) | ~1.2×–3× (up to ~198% full safety) |
+| **Fil-C** | Trusted native compiler (Clang/LLVM) | InvisiCaps (out-of-band software capabilities, 8-byte pointers) | FUGC (concurrent GC + zeroed bounds on `free`) | Very high (CPython, OpenSSH, SQLite, Emacs) | ~1×–4× (low on I/O, ~2–3× on pointer-dense CPU) |
+| **`optrich-vm-02`** | Verifiable VM bytecode | Split blocks (`bytes` + `refs`) + `mem.span` / `mem.readonly` handles | Precise tracing GC | Low (targets native Optic `.opc`) | Interpreter today; JIT-friendly design |
+| **WasmGC** | Verifiable Wasm bytecode | Statically typed `struct`/`array` + `rec` groups | Engine tracing GC | None (targets GC languages) | Near-native (production JITs) |
 
 ---
 
