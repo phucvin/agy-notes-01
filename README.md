@@ -6,6 +6,7 @@ Notes and artifacts from conversations with Antigravity
 - [`notes/writership.md`](notes/writership.md) — Architecture, evaluation, and industry parallels for [`phucvin/Writership`](https://github.com/phucvin/Writership).
 - [`notes/old-original-repos.md`](notes/old-original-repos.md) — Summaries, evaluations, industry parallels, and continuation challenges for 15 original `phucvin` repositories (linking to `Writership`).
 - [`notes/wasm-memory-models.md`](notes/wasm-memory-models.md) — WebAssembly memory models (WasmGC cross-module sharing, Multi-Memory, Memory Control, MS-Wasm/CHERI, Linear/Ownership) compared with `optrich-vm-02`.
+- [`notes/ms-wasm.md`](notes/ms-wasm.md) — MS-Wasm overview, linear-memory threat model, standardization/adoption status, and why it isn't in production.
 
 ## Skills
 
