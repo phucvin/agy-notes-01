@@ -7,6 +7,7 @@ Notes and artifacts from conversations with Antigravity
 - [`notes/old-original-repos.md`](notes/old-original-repos.md) — Summaries, evaluations, industry parallels, and continuation challenges for 15 original `phucvin` repositories (linking to `Writership`).
 - [`notes/wasm-memory-models.md`](notes/wasm-memory-models.md) — WebAssembly memory models (WasmGC cross-module sharing, Multi-Memory, Memory Control, MS-Wasm/CHERI, Linear/Ownership) compared with `optrich-vm-02`.
 - [`notes/ms-wasm.md`](notes/ms-wasm.md) — MS-Wasm overview, linear-memory threat model, standardization/adoption status, and why it isn't in production.
+- [`notes/unkernel-fib40-benchmark.md`](notes/unkernel-fib40-benchmark.md) — Naive recursive `fib(40)` benchmarks (Go, GCC, Fil-C, Node.js, Python) on `pithings/unkernel` vs. laptops/cloud VMs and architectural takeaways.
 
 ## Skills
 
